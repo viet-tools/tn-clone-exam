@@ -1,0 +1,25 @@
+{
+  "name": "tn-clone-exam",
+  "version": "1.0.0",
+  "description": "Clone list exam from website https://hoc.trangnguyen.edu.vn",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/viet-tools/tn-clone-exam.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/viet-tools/tn-clone-exam/issues"
+  },
+  "homepage": "https://github.com/viet-tools/tn-clone-exam#readme",
+  "dependencies": {
+    "axios": "^0.19.0",
+    "jquery": "^3.4.1",
+    "jsdom": "^15.1.1"
+  }
+}
