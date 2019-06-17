@@ -80,6 +80,7 @@ const getLink = async (url, cookie, userInfo) => {
 			}
 			return results;
 		} else if (/https:\/\/hoc.trangnguyen.edu.vn\/bai-giai\/[a-z\-]+$/.test(url)) {
+			
 			const links = $dom.find('.well .media >a');
 			if(links.length > 0) {
 				const results = [];
@@ -150,7 +151,7 @@ const processLink = async (linkGet, cookie, userInfo) => {
 					listLink.push(link);
 					if(link.endsWith('.html')) {
 						if(link.indexOf('/luyen-tap/') === 0) {
-							// await getContent(`https://hoc.trangnguyen.edu.vn${link}`, cookie, link, userInfo);
+							await getContent(`https://hoc.trangnguyen.edu.vn${link}`, cookie, link, userInfo);
 						} else if(link.indexOf('/bai-giai/') === 0) {
 							console.log('get link bai giai', link);
 						}
