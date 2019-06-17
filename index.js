@@ -32,7 +32,7 @@ if(!token && (!username || !password)) {
 
 const $ = require("jquery")(window);
 
-const getLink = async (url, cookie) => {
+const getLink = async (url, cookie, userInfo) => {
 	const res = await axios.get(url, {
 		headers: {
 			Cookie: cookie,
@@ -46,8 +46,9 @@ const getLink = async (url, cookie) => {
 	if (res.status !== 200) return null;
 
 	const html = res.data;
+	const $dom = $(html);
 
-	const listA = $(html).find('#root a');
+	const listA = $dom.find('#root a');
 	if(listA.length > 0) {
 		const results = [];
 		for(let i = 0; i < listA.length; i++) {
@@ -56,19 +57,38 @@ const getLink = async (url, cookie) => {
 		return results;
 	} else {
 		if (/https:\/\/hoc.trangnguyen.edu.vn\/luyen-tap\/[a-z\-]+$/.test(url)) {
+			const subject_info = html.match(/var subject_info = (\{.*\});/i);
+
 			const results = [];
 			const arr = url.split('/');
 			arr.shift();
 			arr.shift();
 			arr.shift();
 			const pathUrl = arr.join('/');
+
+			if (subject_info.length > 0) {
+				const pathStorage = path.join(__dirname, 'data', userInfo.class_id.toString(), pathUrl);
+				if(!fs.existsSync()) fs.mkdirSync(pathStorage, {recursive: true});
+				fs.writeFileSync(path.join(pathStorage, 'index.json'), subject_info[1]);
+			}
+			
 			for(let i = 1; i <= 19; i++) {
-				results.push(`/${pathUrl}/vong-${i}`);
+				// results.push(`/${pathUrl}/vong-${i}`);
 				results.push(`/${pathUrl}/vong-${i}/bai-1.html`);
 				results.push(`/${pathUrl}/vong-${i}/bai-2.html`);
 				results.push(`/${pathUrl}/vong-${i}/bai-3.html`);
 			}
 			return results;
+		} else if (/https:\/\/hoc.trangnguyen.edu.vn\/bai-giai\/[a-z\-]+$/.test(url)) {
+			const links = $dom.find('.well .media >a');
+			if(links.length > 0) {
+				const results = [];
+				for(let i = 0; i < links.length; i++) {
+					const link = $(links[i]).attr('href');
+					if(!results.includes(link)) results.push(link);
+				}
+				return results;
+			}
 		}
 	}
 	
@@ -121,7 +141,7 @@ const getContent = async (url, cookie, link, userInfo) => {
 const processLink = async (linkGet, cookie, userInfo) => {
 	console.log(linkGet);
 	try {
-		const links = await getLink(linkGet, cookie);
+		const links = await getLink(linkGet, cookie, userInfo);
 
 		if (links && links.length > 0) {
 			for(let i = 0; i< links.length; i++) {
@@ -129,7 +149,11 @@ const processLink = async (linkGet, cookie, userInfo) => {
 				if(!listLink.includes(link)) {
 					listLink.push(link);
 					if(link.endsWith('.html')) {
-						await getContent(`https://hoc.trangnguyen.edu.vn${link}`, cookie, link, userInfo);
+						if(link.indexOf('/luyen-tap/') === 0) {
+							// await getContent(`https://hoc.trangnguyen.edu.vn${link}`, cookie, link, userInfo);
+						} else if(link.indexOf('/bai-giai/') === 0) {
+							console.log('get link bai giai', link);
+						}
 					} else {
 						const dir = path.join(__dirname, 'data', userInfo.class_id.toString(), link);
 						if(!fs.existsSync(dir)) fs.mkdirSync(dir, {recursive: true});
