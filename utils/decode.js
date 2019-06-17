@@ -2,11 +2,11 @@
 
 const CryptoJS = require("crypto-js");
 
-const getUserId = (content) => {
-    const match = content.match(/uid\:[ ]?\"(\d+)\"/i);
-    if(match && match.length > 0) return match[1];
-    return null;
-};
+// const getUserId = (content) => {
+//     const match = content.match(/uid\:[ ]?\"(\d+)\"/i);
+//     if(match && match.length > 0) return match[1];
+//     return null;
+// };
 
 const getDataEnc = (content) => {
     const ss = content.substring(content.lastIndexOf('('));
@@ -15,9 +15,9 @@ const getDataEnc = (content) => {
 };
 
 module.exports = (res) => {
-    const isGame = /.*\/game.min.js$/.test(res.config.url);
+    // const isGame = /.*\/game.min.js$/.test(res.config.url);
     const content = res.data;
-    const userId = getUserId(content);
+    // const userId = getUserId(content);
     const dataEnc = getDataEnc(content);
 
     const lengthKey = parseInt(dataEnc.substring(dataEnc.length - 2))

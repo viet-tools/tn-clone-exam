@@ -12,6 +12,7 @@ global.document = document;
 const Login = require('./utils/login');
 const getCookie = require('./utils/cookie');
 const decode = require('./utils/decode');
+const Profile = require('./utils/profile');
 
 const token = process.env.token;
 const username = process.env.username;
@@ -74,7 +75,7 @@ const getLink = async (url, cookie) => {
 	return null;
 }
 
-const getContent = async (url, cookie, link) => {
+const getContent = async (url, cookie, link, userInfo) => {
 	console.log('Content: ', url);
 	try {
 		const res = await axios.get(url, {
@@ -106,8 +107,8 @@ const getContent = async (url, cookie, link) => {
 			if (resGame.status !== 200) return null;
 		
 			// write file
-			const examContent = decode(resGame);
-			const filePath = path.join(__dirname, 'data', link.replace('.html', '.json'));
+			const examContent = decode(resGame, userInfo);
+			const filePath = path.join(__dirname, 'data', userInfo.class_id.toString(), link.replace('.html', '.json'));
 			fs.writeFileSync(filePath, examContent, {encoding: 'utf8', mode: 0o666, flag: 'w'});
 		} else {
 			console.log('not match', url, jsMatch)
@@ -117,7 +118,7 @@ const getContent = async (url, cookie, link) => {
 	}	
 };
 
-const processLink = async (linkGet, cookie) => {
+const processLink = async (linkGet, cookie, userInfo) => {
 	console.log(linkGet);
 	try {
 		const links = await getLink(linkGet, cookie);
@@ -128,11 +129,11 @@ const processLink = async (linkGet, cookie) => {
 				if(!listLink.includes(link)) {
 					listLink.push(link);
 					if(link.endsWith('.html')) {
-						await getContent(`https://hoc.trangnguyen.edu.vn${link}`, cookie, link);
+						await getContent(`https://hoc.trangnguyen.edu.vn${link}`, cookie, link, userInfo);
 					} else {
-						const dir = path.join(__dirname, 'data', link)
-						if(!fs.existsSync(dir)) fs.mkdirSync(dir);
-						await processLink(`https://hoc.trangnguyen.edu.vn${link}`, cookie);
+						const dir = path.join(__dirname, 'data', userInfo.class_id.toString(), link);
+						if(!fs.existsSync(dir)) fs.mkdirSync(dir, {recursive: true});
+						await processLink(`https://hoc.trangnguyen.edu.vn${link}`, cookie, userInfo);
 					}
 				}
 			}
@@ -145,7 +146,12 @@ const processLink = async (linkGet, cookie) => {
 (async () => {
 	try {
 		if (isUseToken) {
-			await processLink('https://hoc.trangnguyen.edu.vn', `tndata=${token}`);
+			const userInfo = await Profile($, `tndata=${token}`);
+			if (userInfo) {
+				await processLink('https://hoc.trangnguyen.edu.vn', `tndata=${token}`, userInfo);
+			} else {
+				console.log('Token error');
+			}
 		} else {
 			const resLogin = await Login(username, password);
 			const resultLogin = resLogin.data;
