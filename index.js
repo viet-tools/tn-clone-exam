@@ -39,6 +39,13 @@ const $ = require("jquery")(window);
 const download = async (url) => {
 	console.log('Download file:', url);
 	try {
+		if(url.indexOf('http://') !== 0 || url.indexOf('https://') !== 0) {
+			if(url.indexOf('/') === 0) {
+				url = `https://hoc.trangnguyen.edu.vn${url}`;
+			} else {
+				url = `https://hoc.trangnguyen.edu.vn/${url}`;
+			}
+		}
 		const res = await axios.get(url, { 
 			responseType: 'arraybuffer',
 			headers: {
@@ -184,14 +191,17 @@ const getContent = async (url, cookie, link, userInfo) => {
 			const dataJson = JSON.parse(examContent);
 			if(dataJson.game_id > 0) {
 				dataJson.content.forEach(item => {
-					if(item.type === 'image') listDownload.push(item.content);
+					if(item.type === 'image' && !listDownload.includes(item.content)) listDownload.push(item.content);
 				});
 			} else {
 				dataJson.content.forEach(item => {
 					const pos = item.question.indexOf('{img:');
 					if(pos >=  0) {
 						const pos2 = item.question.indexOf('}', pos + 5);
-						if (pos2 >= 0) listDownload.push(item.question.substring(pos + 5, pos2));
+						if (pos2 >= 0) {
+							const src = item.question.substring(pos + 5, pos2);
+							if(!listDownload.includes(src)) listDownload.push(src);
+						}
 					}
 				});
 			}
@@ -200,6 +210,23 @@ const getContent = async (url, cookie, link, userInfo) => {
 		}
 	} catch(e) {
 		console.log(e.message);
+	}
+};
+
+const getImgSrc = (content) => {
+	try {
+		const imgs = $(`<div>${content}</div>`).find('img');
+		if(imgs.length > 0) {
+			const list = [];
+			for(let i = 0; i< imgs.length; i++) {
+				list.push($(imgs[i]).attr('src'));
+			}
+			return list;
+		}
+		return null;
+	} catch (e) {
+		console.error('>>', e.message, content);
+		process.exit(1);
 	}
 };
 
@@ -237,6 +264,25 @@ const getContentBaiGiai = async (url, cookie, link, userInfo) => {
 		fs.writeFileSync(filePath, examContent, {encoding: 'utf8', mode: 0o666, flag: 'w'});
 
 		// queue download file listDownload
+		const dataJson = JSON.parse(examContent);
+		dataJson.content.forEach(item => {
+			let listImg = [];
+			listImg = listImg.concat(getImgSrc(item.question));
+			listImg = listImg.concat(getImgSrc(item.the_answer));
+
+			if(item.type === '2') {
+				listImg = listImg.concat(getImgSrc(item.answered));
+			} else {
+				listImg = listImg.concat(getImgSrc(item.answer[0]));
+				listImg = listImg.concat(getImgSrc(item.answer[1]));
+				listImg = listImg.concat(getImgSrc(item.answer[2]));
+				listImg = listImg.concat(getImgSrc(item.answer[3]));
+			}
+		
+			listImg.forEach(src => {
+				if(src && !listDownload.includes(src)) listDownload.push(src);
+			});
+		});
 	} catch(e) {
 		console.log(e.message);
 	}
