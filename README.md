@@ -24,25 +24,25 @@ suggestion using VIP account for clone data
 
 `username=<username> password=<password> node index.js`
 
-### If want clone via token token
+### If want clone via token
 
 Login account in page: https://hoc.trangnguyen.edu.vn/dang-nhap
 
-When login done, Press *F12* key and choose tab *Application*.
+When login done, Press **F12** key and choose tab **Application**.
 
-Right slide choose *Cookies* and next choose *https://hoc.trangnguyen.edu.vn*
+Right slide choose **Cookies** and next choose **https://hoc.trangnguyen.edu.vn**
 
-Double click and copy *value* of key *tndata*
+Double click and copy **value** of key **tndata**
 
 Final start application:
 
 `token=<value_of_cookie_tndata> node index.js`
 
-Data output at directory *data*
+Data output at directory **data**
 
-!['Screenshot](https://github.com/viet-tools/tn-register-multiple-account/blob/master/Screenshot.png?raw=true)
+!['Screenshot](https://github.com/viet-tools/tn-clone-exam/blob/master/get-cookie.png?raw=true)
 
-!['Screenshot](https://github.com/viet-tools/tn-register-multiple-account/blob/master/Screenshot.png?raw=true)
+!['Screenshot](https://github.com/viet-tools/tn-clone-exam/blob/master/output.png?raw=true)
 
 Enjoy!
 
