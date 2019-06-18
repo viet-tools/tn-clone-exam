@@ -12,6 +12,7 @@ global.document = document;
 const Login = require('./utils/login');
 const getCookie = require('./utils/cookie');
 const decode = require('./utils/decode');
+const decodebaiGiai = require('./utils/decodeBaiGiai');
 const Profile = require('./utils/profile');
 
 const token = process.env.token;
@@ -31,6 +32,10 @@ if(!token && (!username || !password)) {
 }
 
 const $ = require("jquery")(window);
+
+const downloadImage = async () => {
+
+};
 
 const getLink = async (url, cookie, userInfo) => {
 	const res = await axios.get(url, {
@@ -56,38 +61,58 @@ const getLink = async (url, cookie, userInfo) => {
 		}
 		return results;
 	} else {
+		const arr = url.split('/');
+		arr.shift();
+		arr.shift();
+		arr.shift();
+		const pathUrl = arr.join('/');
+
 		if (/https:\/\/hoc.trangnguyen.edu.vn\/luyen-tap\/[a-z\-]+$/.test(url)) {
 			const subject_info = html.match(/var subject_info = (\{.*\});/i);
 
 			const results = [];
-			const arr = url.split('/');
-			arr.shift();
-			arr.shift();
-			arr.shift();
-			const pathUrl = arr.join('/');
-
+			
 			if (subject_info.length > 0) {
 				const pathStorage = path.join(__dirname, 'data', userInfo.class_id.toString(), pathUrl);
-				if(!fs.existsSync()) fs.mkdirSync(pathStorage, {recursive: true});
+				if(!fs.existsSync(pathStorage)) fs.mkdirSync(pathStorage, {recursive: true});
 				fs.writeFileSync(path.join(pathStorage, 'index.json'), subject_info[1]);
 			}
 			
 			for(let i = 1; i <= 19; i++) {
 				// results.push(`/${pathUrl}/vong-${i}`);
+				const pathStorage = path.join(__dirname, 'data', userInfo.class_id.toString(), `${pathUrl}/vong-${i}`);
+				if(!fs.existsSync(pathStorage)) fs.mkdirSync(pathStorage, {recursive: true});
+
 				results.push(`/${pathUrl}/vong-${i}/bai-1.html`);
 				results.push(`/${pathUrl}/vong-${i}/bai-2.html`);
 				results.push(`/${pathUrl}/vong-${i}/bai-3.html`);
 			}
 			return results;
 		} else if (/https:\/\/hoc.trangnguyen.edu.vn\/bai-giai\/[a-z\-]+$/.test(url)) {
-			
-			const links = $dom.find('.well .media >a');
-			if(links.length > 0) {
+			const wells = $dom.find('.well');
+			if(wells.length > 0) {
+				const list = [];
 				const results = [];
-				for(let i = 0; i < links.length; i++) {
-					const link = $(links[i]).attr('href');
-					if(!results.includes(link)) results.push(link);
+				for(let i = 0; i < wells.length; i++) {
+					const well = wells[i];
+					const a = $(well).find('.media >a');
+					const href = $(a).attr('href');
+					const imgSrc = $(a).find('img').attr('src');
+					const examName = $(well).find('.media .media-body h4').text()
+					list.push({
+						name: examName,
+						thumb: imgSrc,
+						link: href
+					});
+					results.push(href);
 				}
+
+				if (list.length > 0) {
+					const pathStorage = path.join(__dirname, 'data', userInfo.class_id.toString(), pathUrl);
+					if(!fs.existsSync(pathStorage)) fs.mkdirSync(pathStorage, {recursive: true});
+					fs.writeFileSync(path.join(pathStorage, 'index.json'), JSON.stringify(list));
+				}
+
 				return results;
 			}
 		}
@@ -128,7 +153,7 @@ const getContent = async (url, cookie, link, userInfo) => {
 			if (resGame.status !== 200) return null;
 		
 			// write file
-			const examContent = decode(resGame, userInfo);
+			const examContent = decode(resGame);
 			const filePath = path.join(__dirname, 'data', userInfo.class_id.toString(), link.replace('.html', '.json'));
 			fs.writeFileSync(filePath, examContent, {encoding: 'utf8', mode: 0o666, flag: 'w'});
 		} else {
@@ -136,7 +161,44 @@ const getContent = async (url, cookie, link, userInfo) => {
 		}
 	} catch(e) {
 		console.log(e.message);
-	}	
+	}
+};
+
+const getContentBaiGiai = async (url, cookie, link, userInfo) => {
+	console.log('Content: ', url);
+	try {
+		const res = await axios.get(url, {
+			headers: {
+				Cookie: cookie,
+				Referer: 'https://trangnguyen.edu.vn',
+				Origin: 'https://trangnguyen.edu.vn',
+				'User-Agent': 'Mozilla/10.0 (Windows NT 10.0) AppleWebKit/538.36 (KHTML, like Gecko) Chrome/69.420 Safari/537.36'
+			}
+		});
+	
+		if (res.status !== 200) return null;
+	
+		const newCookie = getCookie(res);
+
+		// play.min.js
+		const resGame = await axios.get('https://hoc.trangnguyen.edu.vn/bai-giai/tieng-viet/play.min.js', {
+			headers: {
+				Cookie: newCookie,
+				Referer: url,
+				Origin: 'https://trangnguyen.edu.vn',
+				'User-Agent': 'Mozilla/10.0 (Windows NT 10.0) AppleWebKit/538.36 (KHTML, like Gecko) Chrome/69.420 Safari/537.36'
+			}
+		});
+
+		if (resGame.status !== 200) return null;
+	
+		// write file
+		const examContent = decodebaiGiai(resGame);
+		const filePath = path.join(__dirname, 'data', userInfo.class_id.toString(), link.replace('.html', '.json'));
+		fs.writeFileSync(filePath, examContent, {encoding: 'utf8', mode: 0o666, flag: 'w'});
+	} catch(e) {
+		console.log(e.message);
+	}
 };
 
 const processLink = async (linkGet, cookie, userInfo) => {
@@ -153,7 +215,7 @@ const processLink = async (linkGet, cookie, userInfo) => {
 						if(link.indexOf('/luyen-tap/') === 0) {
 							await getContent(`https://hoc.trangnguyen.edu.vn${link}`, cookie, link, userInfo);
 						} else if(link.indexOf('/bai-giai/') === 0) {
-							console.log('get link bai giai', link);
+							await getContentBaiGiai(`https://hoc.trangnguyen.edu.vn${link}`, cookie, link, userInfo);
 						}
 					} else {
 						const dir = path.join(__dirname, 'data', userInfo.class_id.toString(), link);
