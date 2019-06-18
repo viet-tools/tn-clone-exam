@@ -20,7 +20,10 @@ const username = process.env.username;
 const password = process.env.password;
 let isUseToken = true;
 
+axios.baseURL = 'https://hoc.trangnguyen.edu.vn';
+
 const listLink = [];
+const listDownload = [];
 
 if(!token && (!username || !password)) {
 	console.error('Must input token or username and password via env');
@@ -33,8 +36,27 @@ if(!token && (!username || !password)) {
 
 const $ = require("jquery")(window);
 
-const downloadImage = async () => {
-
+const download = async (url) => {
+	console.log('Download file:', url);
+	try {
+		const res = await axios.get(url, { 
+			responseType: 'arraybuffer',
+			headers: {
+				Referer: 'https://hoc.trangnguyen.edu.vn',
+				'Content-Type': 'application/json',
+				Origin: 'https://trangnguyen.edu.vn',
+				'User-Agent': 'Mozilla/10.0 (Windows NT 10.0) AppleWebKit/538.36 (KHTML, like Gecko) Chrome/69.420 Safari/537.36'
+			}
+		});
+		if (res.status !== 200) return null;
+		const urlPath = res.request.path;
+		const filePath = path.join(__dirname, 'data', urlPath);
+		const dir = path.dirname(filePath);
+		if(!fs.existsSync(dir)) fs.mkdirSync(dir, {recursive: true});
+		fs.writeFileSync(filePath, res.data);
+	} catch (e) {
+		console.error(e.message);
+	}
 };
 
 const getLink = async (url, cookie, userInfo) => {
@@ -104,6 +126,7 @@ const getLink = async (url, cookie, userInfo) => {
 						thumb: imgSrc,
 						link: href
 					});
+					listDownload.push(imgSrc);
 					results.push(href);
 				}
 
@@ -156,6 +179,22 @@ const getContent = async (url, cookie, link, userInfo) => {
 			const examContent = decode(resGame);
 			const filePath = path.join(__dirname, 'data', userInfo.class_id.toString(), link.replace('.html', '.json'));
 			fs.writeFileSync(filePath, examContent, {encoding: 'utf8', mode: 0o666, flag: 'w'});
+
+			// queue download file listDownload
+			const dataJson = JSON.parse(examContent);
+			if(dataJson.game_id > 0) {
+				dataJson.content.forEach(item => {
+					if(item.type === 'image') listDownload.push(item.content);
+				});
+			} else {
+				dataJson.content.forEach(item => {
+					const pos = item.question.indexOf('{img:');
+					if(pos >=  0) {
+						const pos2 = item.question.indexOf('}', pos + 5);
+						if (pos2 >= 0) listDownload.push(item.question.substring(pos + 5, pos2));
+					}
+				});
+			}
 		} else {
 			console.log('not match', url, jsMatch)
 		}
@@ -196,6 +235,8 @@ const getContentBaiGiai = async (url, cookie, link, userInfo) => {
 		const examContent = decodebaiGiai(resGame);
 		const filePath = path.join(__dirname, 'data', userInfo.class_id.toString(), link.replace('.html', '.json'));
 		fs.writeFileSync(filePath, examContent, {encoding: 'utf8', mode: 0o666, flag: 'w'});
+
+		// queue download file listDownload
 	} catch(e) {
 		console.log(e.message);
 	}
@@ -247,6 +288,12 @@ const processLink = async (linkGet, cookie, userInfo) => {
 				if(cookie) {
 					await processLink('https://hoc.trangnguyen.edu.vn', cookie);
 				}
+			}
+		}
+
+		if(listDownload.length > 0) {
+			for(const link of listDownload) {
+				await download(link);
 			}
 		}
 	} catch(e) {
