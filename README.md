@@ -40,9 +40,9 @@ Final start application:
 
 Data output at directory *data*
 
-!['Screenshot](https://github.com/viet-tools/tn-register-multiple-account/blob/master/Screenshot.png?raw=true)
+!['Screenshot](https://github.com/viet-tools/tn-clone-exam/blob/master/get-cookie.png?raw=true)
 
-!['Screenshot](https://github.com/viet-tools/tn-register-multiple-account/blob/master/Screenshot.png?raw=true)
+!['Screenshot](https://github.com/viet-tools/tn-clone-exam/blob/master/output.png?raw=true)
 
 Enjoy!
 
